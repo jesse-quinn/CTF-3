@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /diag.php
+
+# Internal note: diag.php shells out to the system ping/nslookup/whois
+# binaries. Keep it off the public interface until the host field is escaped.

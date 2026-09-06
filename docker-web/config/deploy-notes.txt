@@ -1,0 +1,13 @@
+NetDiag deployment notes (root only)
+====================================
+
+This container is deployed onto the ops host by the "netops" service account.
+The account is shared with the host so the same push script can restart the
+stack after a rebuild.
+
+  host account : netops
+  host ssh port: 22
+  password     : IyMBegU3KYWFwymcHybD2Tun
+
+Reminder: the host account is only meant for deploys. Do not reuse it for the
+diagnostics operator (see /opt/netdiag/scheduler.conf for that one).

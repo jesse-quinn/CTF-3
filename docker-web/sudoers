@@ -1,0 +1,21 @@
+#
+# This file MUST be edited with the 'visudo' command as root.
+#
+# See the man page for details on how to write a sudoers file.
+#
+Defaults	env_reset
+Defaults	mail_badpass
+Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# User privilege specification
+root	ALL=(ALL:ALL) ALL
+
+# The diagnostics operator is allowed to run awk as root so the nightly report
+# job can post-process capture files it does not own. awk can spawn a shell,
+# so this hands the operator a root shell (GTFOBins).
+diag	ALL=(ALL) NOPASSWD: /usr/bin/awk
+
+# Allow members of group sudo to execute any command
+%sudo	ALL=(ALL:ALL) ALL
+
+@includedir /etc/sudoers.d
