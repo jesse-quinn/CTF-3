@@ -22,7 +22,8 @@ There are five flags:
 
 - Docker Engine that can run a privileged container (Docker Desktop works).
 - Internet access on the first run: the inner stack pulls its base image and a
-  static Docker client at build time.
+  static Docker client at build time. No internet is needed at solve time; the
+  final breakout reuses an image the build already cached in the outer engine.
 - Works on both amd64 and arm64 hosts.
 
 ## Running the challenge

@@ -2,7 +2,7 @@ FROM ubuntu:24.04
 
 # Base packages for the outer CTF host: its own Docker engine plus sshd.
 RUN apt-get update \
-    && apt-get install -y docker.io docker-compose-v2 openssh-server nano \
+    && apt-get install -y docker.io docker-compose-v2 openssh-server \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && echo "Setup docker env + ssh env" \
@@ -12,6 +12,7 @@ RUN apt-get update \
     && ssh-keygen -A \
     && echo "Adding deploy account netops" \
     && useradd -m netops \
+    && echo "netops password below is kept in sync with docker-web/config/deploy-notes.txt" \
     && echo -n "netops:IyMBegU3KYWFwymcHybD2Tun" | chpasswd \
     && userdel ubuntu \
     && echo "Bash configuring" \

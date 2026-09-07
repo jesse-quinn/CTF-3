@@ -74,34 +74,70 @@ SSH.
 
 - As root in the web container, note `/var/run/docker.sock` is mounted and a
   static `docker` client is present.
-- Read the outer root flag by mounting the outer host filesystem:
+- Read the outer root flag by mounting the outer host filesystem. Reuse an image
+  the outer engine already has from the inner build (`php:8.4-apache` is the web
+  image's base and is already cached), so the step needs no play-time pull:
 
   ```bash
-  docker run --rm -v /:/host alpine cat /host/root/root.txt
+  docker run --rm -v /:/host php:8.4-apache cat /host/root/root.txt
   ```
 
-  That prints the outer `MAIN_FLAG{...}` root flag.
+  Any image already present in the outer engine works here; avoid `alpine`, which
+  the outer engine never pulled and would require Hub access mid-solve. That
+  prints the outer `MAIN_FLAG{...}` root flag.
 
-- The deploy notes readable only by inner root leak the outer host account:
+- The same mount is a full outer-root primitive, so the outer user flag is
+  directly readable too:
+
+  ```bash
+  docker run --rm -v /:/host php:8.4-apache cat /host/home/netops/user.txt
+  ```
+
+  That prints the outer `MAIN_FLAG{...}` user flag.
+
+- For realism, the deploy notes readable only by inner root leak the outer host
+  account, which logs in over the outer-host SSH port as `netops`:
 
   ```bash
   cat /root/deploy-notes.txt
-  ```
-
-  Log in over the outer-host SSH port as `netops` and read the user flag:
-
-  ```bash
   ssh netops@TARGET -p 22
   cat ~/user.txt
   ```
 
-  That prints the outer `MAIN_FLAG{...}` user flag.
+  This recovers the same outer user flag by the intended narrative route. It is a
+  realism flourish, not a requirement (see Notes).
 
 ## Notes and red herrings
 
 - `nslookup` and `whois` are equally injectable; `ping` is just the default
   option. In an unprivileged container `ping` itself may fail to open a raw
   socket, but the injected command after `;` still runs.
-- The outer root flag is also readable directly through the Docker socket mount
-  (the host filesystem is mounted as root), so the `netops` credential is the
-  intended, but not the only, route to the outer user flag.
+- The mounted `docker.sock` is a full outer-root primitive: a container started
+  with `-v /:/host` runs as uid 0 on the outer host and reads any file
+  regardless of mode. Both outer flags (`/root/root.txt` and
+  `/home/netops/user.txt`) are therefore directly readable through the mount.
+  The `deploy-notes.txt` -> `netops` password -> outer SSH stage recovers the
+  same user flag by the intended narrative route, but it gates nothing; it is a
+  realism flourish, not a requirement.
+
+## Maintenance checks (credential sync)
+
+Two credentials are each stored in two files: a login side (where the account is
+created) and a leaked side (what the player recovers). A mismatch builds green
+but dead-ends the pivot, so keep each pair in sync:
+
+- `diag` password: `docker-web/web.Dockerfile` (chpasswd) and
+  `docker-web/config/scheduler.conf`.
+- `netops` password: `Dockerfile` (chpasswd) and
+  `docker-web/config/deploy-notes.txt`.
+
+From the repo root, assert each login-side password appears in its leaked-side
+partner (the check reads both passwords from source, so it needs no update on
+rotation):
+
+```bash
+diag_pw=$(grep chpasswd docker-web/web.Dockerfile | grep -oE "diag:[^']+" | cut -d: -f2)
+netops_pw=$(grep chpasswd Dockerfile | grep -oE 'netops:[^"]+' | cut -d: -f2)
+grep -qF "$diag_pw" docker-web/config/scheduler.conf   && echo "diag password in sync"   || echo "diag password DESYNCED"
+grep -qF "$netops_pw" docker-web/config/deploy-notes.txt && echo "netops password in sync" || echo "netops password DESYNCED"
+```

@@ -1,5 +1,11 @@
 FROM php:8.4-apache
 
+# Pinned static Docker CLI, used only for the final socket breakout. Verified
+# live to resolve for x86_64 and aarch64 as of 2026-09-06. download.docker.com
+# retains old static tarballs but not forever; bump to the then-current 29.x
+# when this exact patch stops resolving. The inner image build relies on
+# BuildKit (default in the outer Ubuntu 24.04 docker.io) for the COPY --chmod
+# instructions below.
 ARG DOCKER_CLI_VERSION=29.8.0
 
 # Diagnostic binaries plus the tooling the challenge needs: sudo for the
@@ -23,7 +29,9 @@ RUN sed -i 's/^Listen 80$/Listen 8080/' /etc/apache2/ports.conf && \
 
 # Diagnostics operator account reached over the inner SSH pivot. The password
 # is meant to be recovered (read from the app config), not cracked, so it is
-# high entropy.
+# high entropy. Keep this password in sync with config/scheduler.conf, which is
+# the leaked copy the player reads; a mismatch builds green but dead-ends the
+# pivot.
 RUN useradd -m -s /bin/bash diag && \
     echo 'diag:msCUXbubEdnMpXFL74CyD3uK' | chpasswd && \
     mkdir -p /run/sshd && \
